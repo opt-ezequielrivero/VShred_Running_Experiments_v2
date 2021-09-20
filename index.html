@@ -120,7 +120,7 @@
                                 "https://api.optimizely.com/v2/experiments/" + experiments[i].id + "/results",
                                 true
                             );
-                            xhttp.setRequestHeader("Authorization", "Bearer " + apiKey);
+                            xhr[i].setRequestHeader("Authorization", "Bearer " + apiKey);
                             xhr[i].send();
                         }
                     }
