@@ -1,0 +1,85 @@
+@import url("https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap");
+
+body {
+    font-family: "Lato", Arial, Helvetica, sans-serif;
+    font-size: 16px;
+    color: #222;
+}
+h3#submit {
+    cursor: pointer;
+    padding: 5px 15px;
+    background-color: #333;
+    color: #fff;
+    border-radius: 3px;
+    display: inline-block;
+}
+h3#submit:hover {
+    background-color: #444;
+}
+.prompt {
+    font-family: "Courier New", Courier, monospace;
+    font-size: 12px;
+    text-transform: uppercase;
+}
+.container {
+    max-width: 50em;
+    margin: 0 auto;
+}
+form input {
+    width: 500px;
+    margin: 5px 0;
+    padding: 5px;
+}
+.exp {
+    border-radius: 5px;
+    padding: 10px 10px 0px;
+    margin-bottom: 15px;
+    border: 1px solid #dadfdf;
+}
+.experiment-results {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin: 0 -10px;
+}
+.exp h3 {
+    margin: 0 0 15px;
+    font-size: 20px;
+    color: #26bda9;
+    text-transform: uppercase;
+}
+.exp h2 {
+    text-transform: uppercase;
+    font-size: 18px;
+    padding: 0;
+    margin-bottom: -10px;
+    text-align: center;
+}
+.exp > .item {
+}
+.exp > .item strong {
+    text-transform: uppercase;
+}
+.experiment-results h4 {
+    clear: left;
+    margin: 0;
+    text-transform: uppercase;
+    color: #209b8c;
+    margin-bottom: 10px;
+}
+.experiment-results .variation {
+    padding: 10px;
+    background-color: #bfdfdb;
+    border-radius: 5px;
+    margin: 10px;
+    width: 30%;
+    box-sizing: border-box;
+}
+.experiment-results .variation div.item {
+    line-height: 23px;
+    font-size: 14px;
+    display: flex;
+    justify-content: space-between;
+}
+.experiment-results div.item span {
+}

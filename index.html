@@ -1,73 +1,8 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <style type="text/css">
-            body {
-                font-family: Arial, Helvetica, sans-serif;
-                font-size: 16px;
-                color: #222;
-            }
-            h3 {
-                cursor: pointer;
-                padding: 5px 15px;
-                background-color: #333;
-                color: #fff;
-                border-radius: 3px;
-                display: inline-block;
-            }
-            .prompt {
-                font-family: "Courier New", Courier, monospace;
-                font-size: 12px;
-            }
-            .container {
-                max-width: 50em;
-                margin: 0 auto;
-            }
-            form input {
-                width: 150px;
-            }
-            .exp {
-                padding: 10px;
-                margin-bottom: 15px;
-                border: 1px solid #ddd;
-            }
-            .experiment-results {
-                display: flex;
-                flex-direction: row;
-                flex-wrap: wrap;
-                margin: 0 -10px;
-            }
-            .exp h2 {
-                text-transform: uppercase;
-                font-size: 18px;
-                padding: 0;
-                margin-bottom: -10px;
-                text-align: center;
-            }
-            .experiment-results h4 {
-                clear: left;
-                margin: 0;
-                text-transform: uppercase;
-                color: #444;
-                margin-bottom: 10px;
-            }
-            .experiment-results .variation {
-                padding: 10px;
-                background-color: #eee;
-                border-radius: 5px;
-                margin: 10px;
-                width: 30%;
-                box-sizing: border-box;
-            }
-            .experiment-results .variation div.item {
-                line-height: 23px;
-                font-size: 14px;
-                display: flex;
-                justify-content: space-between;
-            }
-            .experiment-results div.item span {
-            }
-        </style>
+        <title>Running Experiments for VShred</title>
+        <link rel="stylesheet" href="style.css" />
     </head>
     <body>
         <div class="container">
@@ -75,40 +10,45 @@
             <form>
                 <label for="fname">API Key:</label><br />
                 <input type="text" id="apiKey" name="apikey" /><br />
-                <h3 id="submit">Submit</h3>
+                <h3 id="submit">Submit API Key</h3>
                 <p class="prompt"></p>
                 <div class="results-container"></div>
             </form>
         </div>
     </body>
     <script>
-        console.warn("run!");
         var form = document.querySelector("form");
         var prompt = document.querySelector("p.prompt");
 
         function makeXHR() {
             var apiKey = document.querySelector("#apiKey").value;
+            var experiments;
             var experiments_base = [];
             var experiments_results = [];
             var xhttp = new XMLHttpRequest();
             var xhr = [];
 
-            prompt.innerText += "Loading experiments..";
+            prompt.innerText += "Loading experiments (this may take a few seconds)..";
 
             xhttp.onreadystatechange = function () {
                 if (this.readyState == 4 && this.status == 200) {
-                    var experiments = JSON.parse(this.responseText);
+                    experiments = JSON.parse(this.responseText);
                     prompt.innerText += "loading experiments results..";
                     for (var i = 0; i < experiments.length; i++) {
                         if (experiments[i].status == "running") {
                             // save into array the running experiments
-                            experiments_base.push(experiments[i]);
-
+                            experiments_base.push({ key: experiments[i].id, base: experiments[i] });
                             // for each runningexperiment - get results
                             xhr[i] = new XMLHttpRequest();
                             xhr[i].onreadystatechange = function () {
                                 if (this.readyState == 4 && this.status == 200) {
-                                    experiments_results.push(JSON.parse(this.responseText));
+                                    // get id of experiment from response URL
+                                    var id = parseInt(this.responseURL.substr(42, 11));
+                                    // experiments_base[i].push(JSON.parse(this.responseText));
+                                    experiments_results.push({
+                                        key: id,
+                                        results: JSON.parse(this.responseText),
+                                    });
                                     if (experiments_base.length == experiments_results.length) {
                                         prompt.innerText += "experiments results complete, showing:";
                                         showResults(experiments_base, experiments_results);
@@ -136,38 +76,44 @@
         });
 
         function showResults(experiments_base, experiments_results) {
-            console.warn("showResults");
+            console.warn("showResults = experiments_base");
             console.warn(experiments_base);
+            console.warn("showResults = experiments_results");
             console.warn(experiments_results);
 
             var container = document.querySelector(".results-container");
 
             for (var i = 0; i < experiments_base.length; i++) {
+                var base = experiments_base[i].base;
+                console.warn(base);
                 var exp = document.createElement("div");
                 exp.classList.add("exp");
 
                 var exp_results = document.createElement("div");
                 exp_results.classList.add("experiment-results");
 
-                printValue("Name", experiments_base[i].name, exp);
-                printValue("Targeting Component", experiments_base[i].url_targeting.key, exp);
-                printValue("Example URL", experiments_base[i].url_targeting.edit_url, exp);
+                exp.insertAdjacentHTML("beforeend", "<h3 class='exp-title'>" + base.name + "</h3>");
+                printValue("Targeting Component", base.url_targeting.key, exp);
+                printValue("Example URL", base.url_targeting.edit_url, exp);
+                printValue("Last Modified", base.last_modified.substr(0, 10), exp);
 
                 exp.insertAdjacentHTML("beforeend", "<h2> Variations </p>");
 
-                // VARIATIONS
-                var variations = experiments_results[i].reach.variations;
-                var primary_metric_variations = experiments_results[i].metrics[0].results;
+                var target_results = experiments_results.find((o) => o.key === base.id);
+
+                var variations = target_results.results.reach.variations;
+                var primary_metric_variations = target_results.results.metrics[0].results;
 
                 // join both variations data and primary metric variations data
                 var variation_array = [];
                 for (var [key, value] of Object.entries(variations)) {
                     for (var [key2, value2] of Object.entries(primary_metric_variations)) {
-                        if (key == key2) variation_array.push([value, value2]);
+                        if (value.variation_id == key2) {
+                            variation_array.push([value, value2]);
+                        }
                     }
                 }
 
-                var v_num = 1;
                 console.warn("variation array:");
                 console.warn(variation_array);
 
@@ -176,30 +122,31 @@
                     variation.classList.add("variation");
 
                     var is_control = variation_array[v][1].is_baseline == true;
-                    if (is_control) {
-                        variation.insertAdjacentHTML("beforeend", "<h4>Control</h4>");
-                    } else {
-                        variation.insertAdjacentHTML("beforeend", "<h4>Variation " + v_num + "</h4>");
-                        v_num++;
-                    }
+
+                    variation.insertAdjacentHTML("beforeend", "<h4>" + variation_array[v][0].name + "</h4>");
+
                     printValue("Visitors", variation_array[v][0].count, variation);
-                    printValue("Reach", variation_array[v][0].variation_reach, variation);
+                    printValue("Traffic", toPercentage(variation_array[v][0].variation_reach, 100), variation);
 
                     if (!is_control) {
                         printValue("Status", variation_array[v][1].lift.lift_status, variation);
                         printValue("Is significant?", variation_array[v][1].lift.is_significant, variation);
                         if (variation_array[v][1].lift.value)
-                            printValue("Improvement", variation_array[v][1].lift.value, variation);
+                            printValue("Improvement", toPercentage(variation_array[v][1].lift.value, 1), variation);
 
                         if (variation_array[v][1].lift.value > 0)
-                            printValue("Stat Sig", variation_array[v][1].lift.significance, variation);
+                            printValue(
+                                "Stat Sig",
+                                toPercentage(variation_array[v][1].lift.significance, 100),
+                                variation
+                            );
                     }
                     exp_results.appendChild(variation);
                 }
 
-                var has_conclusion = experiments_results[i].metrics.some(function (item, index, array) {
-                    return item.conclusion;
-                });
+                // var has_conclusion = experiments_results[i].metrics.some(function (item, index, array) {
+                //     return item.conclusion;
+                // });
 
                 exp.appendChild(exp_results);
 
@@ -217,6 +164,9 @@
                     value +
                     "</span> </div>"
             );
+        }
+        function toPercentage(num, multiplier) {
+            return Math.round((num + Number.EPSILON) * multiplier) + "%";
         }
         // join both variations data and primary metric variations data
     </script>
