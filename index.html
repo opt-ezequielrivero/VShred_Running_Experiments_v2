@@ -141,6 +141,14 @@
                                 variation
                             );
                     }
+                    if (variation_array[v][1].variance) {
+                        printValue(
+                            "Conversions/visitor",
+                            Math.round(variation_array[v][1].variance * 1000) / 1000,
+                            variation
+                        );
+                        printValue("Improvement", calculateImprovement(variation_array, v), variation);
+                    }
                     exp_results.appendChild(variation);
                 }
 
@@ -167,6 +175,25 @@
         }
         function toPercentage(num, multiplier) {
             return Math.round((num + Number.EPSILON) * multiplier) + "%";
+        }
+        function calculateImprovement(variation_array, v) {
+            console.warn("calculateImprovement");
+            var original_conversion;
+            var variation_conversion = parseFloat(variation_array[v][1].variance);
+            console.warn("variation_conversion " + variation_conversion);
+            for (var i = 0; i < variation_array.length; i++) {
+                if (variation_array[i][1].is_baseline == true) {
+                    original_conversion = parseFloat(variation_array[i][1].variance);
+                }
+            }
+            console.warn("original_conversion " + original_conversion);
+            if (original_conversion == 0) {
+                return "--";
+            } else {
+                return (
+                    Math.round(((variation_conversion - original_conversion) / original_conversion) * 1000) / 10 + "%"
+                );
+            }
         }
         // join both variations data and primary metric variations data
     </script>
