@@ -1,62 +1,78 @@
 console.warn("code");
 var form = document.querySelector("form");
 var prompt = document.querySelector("p.prompt");
+var experiments = [];
+var experiments_base = [];
+var experiments_results = [];
+var page = 1;
 
 function makeXHR() {
+    var projectId = document.querySelector("#projectId").value;
     var apiKey = document.querySelector("#apiKey").value;
-    var experiments;
-    var experiments_base = [];
-    var experiments_results = [];
     var xhttp = new XMLHttpRequest();
     var xhr = [];
 
-    prompt.innerText += "Loading experiments (this may take a few seconds)..";
+    if (page===1) {
+      prompt.innerText += "Loading experiments (this may take a few seconds)..";
+    } else {
+      prompt.innerText += "Loading MORE experiments.."
+    }
 
     xhttp.onreadystatechange = function () {
         if (this.readyState == 4 && this.status == 200) {
-            experiments = JSON.parse(this.responseText);
-            prompt.innerText += "loading experiments results..";
+            var parsedResp = JSON.parse(this.response);
+            for (i = 0; i < parsedResp.length; i++) {
+              experiments.push(parsedResp[i]);
+            }
             console.warn("amount of experiments = " + experiments.length);
 
-            for (var i = 0; i < experiments.length; i++) {
-                if (experiments[i].status == "running") {
-                    // save into array the running experiments
-                    experiments_base.push({ key: experiments[i].id, base: experiments[i] });
-                    // for each runningexperiment - get results
-                    xhr[i] = new XMLHttpRequest();
-                    xhr[i].onreadystatechange = function () {
-                        if (this.readyState == 4 && this.status == 200) {
-                            // get id of experiment from response URL
-                            var id = parseInt(this.responseURL.substr(42, 11));
-                            // experiments_base[i].push(JSON.parse(this.responseText));
-                            experiments_results.push({
-                                key: id,
-                                results: JSON.parse(this.responseText),
-                            });
-                            if (experiments_base.length == experiments_results.length) {
-                                prompt.innerText += "experiments results complete, showing:";
-                                showResults(experiments_base, experiments_results);
+            if (parsedResp.length > 0) {
+              console.log(`Reading from page: ${page}`);
+              page ++;
+              makeXHR();
+            } else {
+                prompt.innerText += "\n\nloading experiments results..";
+                for (var i = 0; i < experiments.length; i++) {
+                    if (experiments[i].status == "running") {
+                        // save into array the running experiments
+                        experiments_base.push({ key: experiments[i].id, base: experiments[i] });
+                        // for each runningexperiment - get results
+                        xhr[i] = new XMLHttpRequest();
+                        xhr[i].onreadystatechange = function () {
+                            if (this.readyState == 4 && this.status == 200) {
+                                // get id of experiment from response URL
+                                var id = parseInt(this.responseURL.substr(42, 11));
+                                // experiments_base[i].push(JSON.parse(this.responseText));
+                                experiments_results.push({
+                                    key: id,
+                                    results: JSON.parse(this.responseText),
+                                });
+                                if (experiments_base.length == experiments_results.length) {
+                                    prompt.innerText += "experiments results complete, \n\nvoila!";
+                                    showResults(experiments_base, experiments_results);
+                                }
                             }
-                        }
-                    };
-                    xhr[i].open(
-                        "GET",
-                        "https://api.optimizely.com/v2/experiments/" + experiments[i].id + "/results",
-                        true
-                    );
-                    xhr[i].setRequestHeader("Authorization", "Bearer " + apiKey);
-                    xhr[i].send();
+                        };
+                        xhr[i].open(
+                            "GET",
+                            "https://api.optimizely.com/v2/experiments/" + experiments[i].id + "/results",
+                            true
+                        );
+                        xhr[i].setRequestHeader("Authorization", "Bearer " + apiKey);
+                        xhr[i].send();
+                    }
                 }
             }
         }
-    };
-    xhttp.open("GET", "https://api.optimizely.com/v2/experiments?project_id=20162613972&per_page=100", true);
+      };
+    xhttp.open("GET", `https://api.optimizely.com/v2/experiments?project_id=${projectId}&per_page=25&page=${page}`, true);
     xhttp.setRequestHeader("Authorization", "Bearer " + apiKey);
     xhttp.send();
 }
 
 document.querySelector("#submit").addEventListener("click", function () {
     makeXHR();
+    page ++
 });
 
 function showResults(experiments_base, experiments_results) {
@@ -74,8 +90,12 @@ function showResults(experiments_base, experiments_results) {
         exp.classList.add("exp");
 
         exp.insertAdjacentHTML("beforeend", "<h3 class='exp-title'>" + base.name + "</h3>");
-        printValue("Targeting Component", base.url_targeting.key, exp);
-        printValue("Example URL", base.url_targeting.edit_url, exp);
+        if (base.url_targeting) {
+          printValue("Targeting Component", base.url_targeting.key, exp);
+          printValue("Example URL", base.url_targeting.edit_url, exp);
+        } else if (base.page_ids) {
+          printValue ("Targeting pages", base.page_ids, exp);
+        }
         printValue("Last Modified", base.last_modified.substr(0, 10), exp);
         exp.insertAdjacentHTML("beforeend", "<h2> Variations </p>");
 
